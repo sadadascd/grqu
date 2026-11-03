@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcade Zone - Portal Secreto</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome para Ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Fonte Google VT323 / Press Start 2P / Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            arcade: {
+              bg: '#0a0a12',
+              card: '#121324',
+              accent: '#ff0055',
+              cyan: '#00f0ff',
+              yellow: '#ffe600',
+              green: '#00ff66'
+            }
+          },
+          fontFamily: {
+            retro: ['"Press Start 2P"', 'monospace'],
+            tech: ['Orbitron', 'sans-serif'],
+            sans: ['Rajdhani', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #080810;
+      color: #ffffff;
+      font-family: 'Rajdhani', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Efeito de grade neon ao fundo */
+    .bg-grid {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+    }
+
+    /* Animações e Efeitos */
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.2);
+    }
+    .glow-magenta {
+      box-shadow: 0 0 15px rgba(255, 0, 85, 0.4), inset 0 0 15px rgba(255, 0, 85, 0.2);
+    }
+    .text-glow {
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
+    }
+    .text-glow-pink {
+      text-shadow: 0 0 10px rgba(255, 0, 85, 0.7), 0 0 20px rgba(255, 0, 85, 0.4);
+    }
+
+    canvas {
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body class="bg-grid min-h-screen flex flex-col justify-between selection:bg-arcade-cyan selection:text-black">
+
+  <!-- ================= TELA DE PORTAL / BLOQUEIO ================= -->
+  <section id="gate-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-arcade-bg/95 backdrop-blur-md p-4">
+    <div class="max-w-md w-full bg-arcade-card border-2 border-arcade-cyan p-6 sm:p-8 rounded-2xl glow-cyan text-center relative overflow-hidden">
+      <!-- Luzes decorativas -->
+      <div class="absolute -top-12 -left-12 w-24 h-24 bg-arcade-cyan/20 rounded-full blur-xl"></div>
+      <div class="absolute -bottom-12 -right-12 w-24 h-24 bg-arcade-accent/20 rounded-full blur-xl"></div>
+
+      <div class="mb-4">
+        <span class="inline-block px-3 py-1 bg-arcade-cyan/10 border border-arcade-cyan text-arcade-cyan text-xs font-tech rounded-full mb-2">
+          <i class="fa-solid fa-lock mr-1"></i> ACESSO RESTRITO
+        </span>
+        <h1 class="text-2xl sm:text-3xl font-tech font-bold text-glow tracking-wide">PORTAL ARCADE</h1>
+        <p class="text-gray-400 text-sm mt-1">Complete a sequência de memória para desbloquear o sistema!</p>
+      </div>
+
+      <!-- Desafio de Memória (Simon Hack) -->
+      <div class="my-6">
+        <div class="flex justify-between items-center mb-3 px-2">
+          <span class="text-xs text-gray-400 font-tech">ETAPA DE SEGURANÇA</span>
+          <span id="gate-status" class="text-xs font-tech text-arcade-yellow">AGUARDANDO...</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 max-w-[240px] mx-auto" id="simon-buttons">
+          <button data-id="0" class="simon-btn h-20 rounded-xl border-2 border-red-500 bg-red-950/40 active:bg-red-500 transition-all duration-150 flex items-center justify-center text-2xl"><i class="fa-solid fa-fire text-red-500"></i></button>
+          <button data-id="1" class="simon-btn h-20 rounded-xl border-2 border-blue-500 bg-blue-950/40 active:bg-blue-500 transition-all duration-150 flex items-center justify-center text-2xl"><i class="fa-solid fa-bolt text-blue-500"></i></button>
+          <button data-id="2" class="simon-btn h-20 rounded-xl border-2 border-green-500 bg-green-950/40 active:bg-green-500 transition-all duration-150 flex items-center justify-center text-2xl"><i class="fa-solid fa-shield text-green-500"></i></button>
+          <button data-id="3" class="simon-btn h-20 rounded-xl border-2 border-yellow-500 bg-yellow-950/40 active:bg-yellow-500 transition-all duration-150 flex items-center justify-center text-2xl"><i class="fa-solid fa-star text-yellow-500"></i></button>
+        </div>
+      </div>
+
+      <button id="start-gate-btn" class="w-full py-3 bg-gradient-to-r from-arcade-cyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-tech font-bold text-base rounded-xl shadow-lg transition transform active:scale-95">
+        INICIAR DESAFIO
+      </button>
+    </div>
+  </section>
+
+
+  <!-- ================= HEADER DO HUB ================= -->
+  <header class="border-b border-gray-800 bg-arcade-card/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-arcade-accent flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-arcade-accent/30">
+          <i class="fa-solid fa-gamepad"></i>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-tech font-bold text-glow tracking-wider">CYBER<span class="text-arcade-accent">ARCADE</span></h1>
+        </div>
+      </div>
+
+      <!-- Placar do Usuário -->
+      <div class="flex items-center gap-4 text-sm font-tech">
+        <div class="bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2">
+          <i class="fa-solid fa-trophy text-arcade-yellow"></i>
+          <span class="hidden sm:inline text-gray-400">PONTOS TOTAL:</span>
+          <span id="global-score" class="text-arcade-cyan font-bold text-base">0</span>
+        </div>
+        <button id="relock-btn" title="Bloquear Portal" class="p-2 text-gray-400 hover:text-arcade-accent transition">
+          <i class="fa-solid fa-lock"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ================= CONTEÚDO PRINCIPAL (HUB JOGOS) ================= -->
+  <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+    <!-- Seletor de Jogos / Abas -->
+    <div class="flex flex-wrap justify-center gap-4 mb-8">
+      <button id="tab-snake" onclick="switchGame('snake')" class="game-tab-btn flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-arcade-cyan bg-arcade-cyan/10 text-arcade-cyan font-tech font-bold transition transform hover:scale-105 active:scale-95 shadow-lg shadow-arcade-cyan/20">
+        <i class="fa-solid fa-staff-snake"></i> JOGO DA COBRINHA
+      </button>
+      <button id="tab-target" onclick="switchGame('target')" class="game-tab-btn flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-700 bg-gray-900/50 text-gray-400 hover:border-arcade-accent hover:text-arcade-accent font-tech font-bold transition transform hover:scale-105 active:scale-95">
+        <i class="fa-solid fa-crosshair"></i> TIRO AO ALVO
+      </button>
+    </div>
+
+    <!-- CONTAINER DOS JOGOS -->
+    <div class="max-w-4xl mx-auto">
+      
+      <!-- ================= 1. JOGO DA COBRINHA ================= -->
+      <div id="game-snake-container" class="bg-arcade-card border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+          <div>
+            <h2 class="text-xl font-tech font-bold text-arcade-cyan flex items-center gap-2">
+              <i class="fa-solid fa-staff-snake"></i> CYBER SNAKE
+            </h2>
+            <p class="text-xs text-gray-400">Use as setas do teclado ou os botões na tela para controlar.</p>
+          </div>
+          <div class="flex items-center gap-4 font-tech">
+            <div class="text-center bg-gray-900 px-3 py-1 rounded-lg border border-gray-700">
+              <div class="text-[10px] text-gray-400">PONTOS</div>
+              <div id="snake-score" class="text-lg font-bold text-arcade-green">0</div>
+            </div>
+            <div class="text-center bg-gray-900 px-3 py-1 rounded-lg border border-gray-700">
+              <div class="text-[10px] text-gray-400">RECORDE</div>
+              <div id="snake-high" class="text-lg font-bold text-arcade-yellow">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Snake -->
+        <div class="relative flex justify-center items-center bg-black/60 rounded-xl border border-gray-800 overflow-hidden">
+          <canvas id="snakeCanvas" width="400" height="400" class="max-w-full h-auto aspect-square"></canvas>
+
+          <!-- Overlay Game Over / Start -->
+          <div id="snake-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
+            <h3 id="snake-overlay-title" class="text-2xl font-tech font-bold text-arcade-cyan mb-2">CYBER SNAKE</h3>
+            <p id="snake-overlay-msg" class="text-sm text-gray-300 mb-6 max-w-xs">Colete a energia neon sem colidir com as paredes ou com o próprio corpo!</p>
+            <button onclick="startSnakeGame()" class="px-8 py-3 bg-arcade-cyan hover:bg-cyan-300 text-black font-tech font-bold rounded-xl shadow-lg shadow-arcade-cyan/30 transition transform hover:scale-105 active:scale-95">
+              JOGAR AGORA
+            </button>
+          </div>
+        </div>
+
+        <!-- Controles Virtuais Touch / Mobile -->
+        <div class="mt-6 sm:hidden flex flex-col items-center gap-2">
+          <button onclick="handleSnakeTouch('UP')" class="w-14 h-14 bg-gray-800 active:bg-arcade-cyan active:text-black rounded-xl border border-gray-700 text-xl font-bold flex items-center justify-center">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+          <div class="flex gap-4">
+            <button onclick="handleSnakeTouch('LEFT')" class="w-14 h-14 bg-gray-800 active:bg-arcade-cyan active:text-black rounded-xl border border-gray-700 text-xl font-bold flex items-center justify-center">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button onclick="handleSnakeTouch('DOWN')" class="w-14 h-14 bg-gray-800 active:bg-arcade-cyan active:text-black rounded-xl border border-gray-700 text-xl font-bold flex items-center justify-center">
+              <i class="fa-solid fa-arrow-down"></i>
+            </button>
+            <button onclick="handleSnakeTouch('RIGHT')" class="w-14 h-14 bg-gray-800 active:bg-arcade-cyan active:text-black rounded-xl border border-gray-700 text-xl font-bold flex items-center justify-center">
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 2. JOGO TIRO AO ALVO ================= -->
+      <div id="game-target-container" class="hidden bg-arcade-card border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+          <div>
+            <h2 class="text-xl font-tech font-bold text-arcade-accent flex items-center gap-2">
+              <i class="fa-solid fa-crosshair"></i> TIRO AO ALVO NEON
+            </h2>
+            <p class="text-xs text-gray-400">Clique ou toque nos alvos rapidamente antes que o tempo acabe!</p>
+          </div>
+          <div class="flex items-center gap-4 font-tech">
+            <div class="text-center bg-gray-900 px-3 py-1 rounded-lg border border-gray-700">
+              <div class="text-[10px] text-gray-400">TEMPO</div>
+              <div id="target-timer" class="text-lg font-bold text-arcade-yellow">30s</div>
+            </div>
+            <div class="text-center bg-gray-900 px-3 py-1 rounded-lg border border-gray-700">
+              <div class="text-[10px] text-gray-400">PONTOS</div>
+              <div id="target-score" class="text-lg font-bold text-arcade-accent">0</div>
+            </div>
+            <div class="text-center bg-gray-900 px-3 py-1 rounded-lg border border-gray-700">
+              <div class="text-[10px] text-gray-400">RECORDE</div>
+              <div id="target-high" class="text-lg font-bold text-arcade-cyan">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Target Shooter -->
+        <div class="relative flex justify-center items-center bg-black/60 rounded-xl border border-gray-800 overflow-hidden cursor-crosshair">
+          <canvas id="targetCanvas" width="600" height="400" class="w-full h-auto aspect-[3/2]"></canvas>
+
+          <!-- Overlay Game Over / Start -->
+          <div id="target-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
+            <h3 id="target-overlay-title" class="text-2xl font-tech font-bold text-arcade-accent mb-2">TARGET SHOOTER</h3>
+            <p id="target-overlay-msg" class="text-sm text-gray-300 mb-6 max-w-xs">Acerte o máximo de alvos holográficos em 30 segundos!</p>
+            <button onclick="startTargetGame()" class="px-8 py-3 bg-arcade-accent hover:bg-pink-600 text-white font-tech font-bold rounded-xl shadow-lg shadow-arcade-accent/30 transition transform hover:scale-105 active:scale-95">
+              INICIAR DESAFIO
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ================= RODAPÉ ================= -->
+  <footer class="border-t border-gray-800/80 bg-arcade-card/40 py-4 text-center text-xs text-gray-500 font-tech">
+    <p>CYBER ARCADE SYSTEM &copy; 2026 - TODOS OS DIREITOS RESERVADOS</p>
+  </footer>
+
+  <!-- ================= LÓGICA E JOGOS (JAVASCRIPT) ================= -->
+  <script>
+    /* -------------------------------------------------------------
+       STATE MANAGEMENT & GLOBAL SCORES
+    ------------------------------------------------------------- */
+    let globalScore = 0;
+    let highScores = {
+      snake: 0,
+      target: 0
+    };
+
+    function updateGlobalScore(points) {
+      globalScore += points;
+      document.getElementById('global-score').innerText = globalScore;
+    }
+
+    /* -------------------------------------------------------------
+       1. PORTAL GATEKEEPER (SIMON GAME PUZZLE)
+    ------------------------------------------------------------- */
+    const gateScreen = document.getElementById('gate-screen');
+    const startGateBtn = document.getElementById('start-gate-btn');
+    const gateStatus = document.getElementById('gate-status');
+    const simonBtns = document.querySelectorAll('.simon-btn');
+
+    let simonSequence = [];
+    let playerSequence = [];
+    let simonRound = 0;
+    const requiredRounds = 3; // 3 rodadas para desbloquear
+    let isPlayingSequence = false;
+
+    startGateBtn.addEventListener('click', startGateChallenge);
+    document.getElementById('relock-btn').addEventListener('click', () => {
+      gateScreen.classList.remove('hidden');
+      resetGate();
+    });
+
+    function resetGate() {
+      simonSequence = [];
+      playerSequence = [];
+      simonRound = 0;
+      isPlayingSequence = false;
+      gateStatus.innerText = "AGUARDANDO...";
+      gateStatus.className = "text-xs font-tech text-arcade-yellow";
+      startGateBtn.innerText = "INICIAR DESAFIO";
+      startGateBtn.disabled = false;
+    }
+
+    function startGateChallenge() {
+      resetGate();
+      startGateBtn.disabled = true;
+      startGateBtn.innerText = "EM PROGRESSO...";
+      nextSimonRound();
+    }
+
+    function nextSimonRound() {
+      playerSequence = [];
+      simonRound++;
+      gateStatus.innerText = `RODADA ${simonRound}/${requiredRounds}`;
+      
+      // Adiciona um novo passo aleatório (0 a 3)
+      simonSequence.push(Math.floor(Math.random() * 4));
+
+      // Toca a sequência
+      playSimonSequence();
+    }
+
+    function playSimonSequence() {
+      isPlayingSequence = true;
+      let i = 0;
+      const interval = setInterval(() => {
+        flashSimonButton(simonSequence[i]);
+        i++;
+        if (i >= simonSequence.length) {
+          clearInterval(interval);
+          isPlayingSequence = false;
+        }
+      }, 600);
+    }
+
+    function flashSimonButton(id) {
+      const btn = document.querySelector(`.simon-btn[data-id="${id}"]`);
+      btn.classList.add('brightness-200', 'scale-105', 'glow-cyan');
+      setTimeout(() => {
+        btn.classList.remove('brightness-200', 'scale-105', 'glow-cyan');
+      }, 300);
+    }
+
+    simonBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (isPlayingSequence || simonSequence.length === 0) return;
+
+        const btnId = parseInt(btn.getAttribute('data-id'));
+        flashSimonButton(btnId);
+        playerSequence.push(btnId);
+
+        // Verifica o clique atual
+        const currentIndex = playerSequence.length - 1;
+        if (playerSequence[currentIndex] !== simonSequence[currentIndex]) {
+          // Erro!
+          gateStatus.innerText = "ACESSO NEGADO! TENTE NOVAMENTE.";
+          gateStatus.className = "text-xs font-tech text-arcade-accent";
+          setTimeout(resetGate, 1500);
+          return;
+        }
+
+        // Se completou a rodada
+        if (playerSequence.length === simonSequence.length) {
+          if (simonRound >= requiredRounds) {
+            // Sucesso Total!
+            gateStatus.innerText = "ACESSO PERMITIDO!";
+            gateStatus.className = "text-xs font-tech text-arcade-green";
+            updateGlobalScore(50); // Bônus por desbloquear
+            setTimeout(() => {
+              gateScreen.classList.add('hidden');
+              startSnakeGame(); // Inicia o jogo padrão
+            }, 800);
+          } else {
+            setTimeout(nextSimonRound, 800);
+          }
+        }
+      });
+    });
+
+    /* -------------------------------------------------------------
+       NAVIGATION / TAB SWITCHER
+    ------------------------------------------------------------- */
+    function switchGame(gameType) {
+      const snakeContainer = document.getElementById('game-snake-container');
+      const targetContainer = document.getElementById('game-target-container');
+      const tabSnake = document.getElementById('tab-snake');
+      const tabTarget = document.getElementById('tab-target');
+
+      if (gameType === 'snake') {
+        snakeContainer.classList.remove('hidden');
+        targetContainer.classList.add('hidden');
+
+        tabSnake.className = "game-tab-btn flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-arcade-cyan bg-arcade-cyan/10 text-arcade-cyan font-tech font-bold transition transform hover:scale-105 active:scale-95 shadow-lg shadow-arcade-cyan/20";
+        tabTarget.className = "game-tab-btn flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-700 bg-gray-900/50 text-gray-400 hover:border-arcade-accent hover:text-arcade-accent font-tech font-bold transition transform hover:scale-105 active:scale-95";
+      } else {
+        snakeContainer.classList.add('hidden');
+        targetContainer.classList.remove('hidden');
+
+        tabTarget.className = "game-tab-btn flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-arcade-accent bg-arcade-accent/10 text-arcade-accent font-tech font-bold transition transform hover:scale-105 active:scale-95 shadow-lg shadow-arcade-accent/20";
+        tabSnake.className = "game-tab-btn flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-700 bg-gray-900/50 text-gray-400 hover:border-arcade-cyan hover:text-arcade-cyan font-tech font-bold transition transform hover:scale-105 active:scale-95";
+      }
+    }
+
+
+    /* -------------------------------------------------------------
+       2. JOGO DA COBRINHA (SNAKE GAME)
+    ------------------------------------------------------------- */
+    const snakeCanvas = document.getElementById('snakeCanvas');
+    const snakeCtx = snakeCanvas.getContext('2d');
+    const gridSize = 20;
+    const tileCount = snakeCanvas.width / gridSize;
+
+    let snake = [];
+    let food = { x: 5, y: 5 };
+    let dx = gridSize;
+    let dy = 0;
+    let snakeScore = 0;
+    let snakeInterval = null;
+    let isSnakeRunning = false;
+
+    function startSnakeGame() {
+      document.getElementById('snake-overlay').classList.add('hidden');
+      snake = [
+        { x: 10 * gridSize, y: 10 * gridSize },
+        { x: 9 * gridSize, y: 10 * gridSize },
+        { x: 8 * gridSize, y: 10 * gridSize }
+      ];
+      dx = gridSize;
+      dy = 0;
+      snakeScore = 0;
+      document.getElementById('snake-score').innerText = snakeScore;
+      spawnSnakeFood();
+
+      if (snakeInterval) clearInterval(snakeInterval);
+      isSnakeRunning = true;
+      snakeInterval = setInterval(updateSnake, 100);
+    }
+
+    function spawnSnakeFood() {
+      food.x = Math.floor(Math.random() * tileCount) * gridSize;
+      food.y = Math.floor(Math.random() * tileCount) * gridSize;
+      // Garante que a comida não apareça dentro da cobra
+      snake.forEach(part => {
+        if (part.x === food.x && part.y === food.y) {
+          spawnSnakeFood();
+        }
+      });
+    }
+
+    function updateSnake() {
+      // Move a cabeça
+      const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+      // Colisão com Paredes
+      if (head.x < 0 || head.x >= snakeCanvas.width || head.y < 0 || head.y >= snakeCanvas.height) {
+        return gameOverSnake();
+      }
+
+      // Colisão com o Próprio Corpo
+      for (let i = 0; i < snake.length; i++) {
+        if (head.x === snake[i].x && head.y === snake[i].y) {
+          return gameOverSnake();
+        }
+      }
+
+      snake.unshift(head);
+
+      // Comeu a comida?
+      if (head.x === food.x && head.y === food.y) {
+        snakeScore += 10;
+        updateGlobalScore(10);
+        document.getElementById('snake-score').innerText = snakeScore;
+        if (snakeScore > highScores.snake) {
+          highScores.snake = snakeScore;
+          document.getElementById('snake-high').innerText = highScores.snake;
+        }
+        spawnSnakeFood();
+      } else {
+        snake.pop();
+      }
+
+      drawSnake();
+    }
+
+    function drawSnake() {
+      // Limpa a tela
+      snakeCtx.fillStyle = '#0a0a14';
+      snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+
+      // Desenha Comida (Orbe Neon)
+      snakeCtx.fillStyle = '#ff0055';
+      snakeCtx.shadowBlur = 15;
+      snakeCtx.shadowColor = '#ff0055';
+      snakeCtx.beginPath();
+      snakeCtx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 2, 0, Math.PI * 2);
+      snakeCtx.fill();
+      snakeCtx.shadowBlur = 0; // reseta brilho
+
+      // Desenha Cobra
+      snake.forEach((part, index) => {
+        if (index === 0) {
+          snakeCtx.fillStyle = '#00f0ff'; // Cabeça
+          snakeCtx.shadowBlur = 10;
+          snakeCtx.shadowColor = '#00f0ff';
+        } else {
+          snakeCtx.fillStyle = '#00a8ff'; // Corpo
+          snakeCtx.shadowBlur = 0;
+        }
+        snakeCtx.fillRect(part.x + 1, part.y + 1, gridSize - 2, gridSize - 2);
+      });
+    }
+
+    function gameOverSnake() {
+      clearInterval(snakeInterval);
+      isSnakeRunning = false;
+      const overlay = document.getElementById('snake-overlay');
+      document.getElementById('snake-overlay-title').innerText = "FIM DE JOGO!";
+      document.getElementById('snake-overlay-msg').innerText = `Você marcou ${snakeScore} pontos!`;
+      overlay.classList.remove('hidden');
+    }
+
+    // Controles por teclado
+    window.addEventListener('keydown', (e) => {
+      if (!isSnakeRunning) return;
+      if (e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -gridSize; }
+      if (e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = gridSize; }
+      if (e.key === 'ArrowLeft' && dx === 0) { dx = -gridSize; dy = 0; }
+      if (e.key === 'ArrowRight' && dx === 0) { dx = gridSize; dy = 0; }
+    });
+
+    // Controles Mobile
+    function handleSnakeTouch(dir) {
+      if (!isSnakeRunning) return;
+      if (dir === 'UP' && dy === 0) { dx = 0; dy = -gridSize; }
+      if (dir === 'DOWN' && dy === 0) { dx = 0; dy = gridSize; }
+      if (dir === 'LEFT' && dx === 0) { dx = -gridSize; dy = 0; }
+      if (dir === 'RIGHT' && dx === 0) { dx = gridSize; dy = 0; }
+    }
+
+
+    /* -------------------------------------------------------------
+       3. JOGO TIRO AO ALVO (TARGET SHOOTER)
+    ------------------------------------------------------------- */
+    const targetCanvas = document.getElementById('targetCanvas');
+    const targetCtx = targetCanvas.getContext('2d');
+
+    let targets = [];
+    let targetScore = 0;
+    let targetTimeLeft = 30;
+    let targetTimerInterval = null;
+    let isTargetRunning = false;
+    let animationFrameId = null;
+
+    function startTargetGame() {
+      document.getElementById('target-overlay').classList.add('hidden');
+      targetScore = 0;
+      targetTimeLeft = 30;
+      targets = [];
+      document.getElementById('target-score').innerText = targetScore;
+      document.getElementById('target-timer').innerText = targetTimeLeft + 's';
+
+      isTargetRunning = true;
+
+      // Spawna alvos iniciais
+      for (let i = 0; i < 3; i++) {
+        spawnTarget();
+      }
+
+      // Cronômetro
+      if (targetTimerInterval) clearInterval(targetTimerInterval);
+      targetTimerInterval = setInterval(() => {
+        targetTimeLeft--;
+        document.getElementById('target-timer').innerText = targetTimeLeft + 's';
+        if (targetTimeLeft <= 0) {
+          endTargetGame();
+        }
+      }, 1000);
+
+      // Loop de renderização
+      renderTargetGame();
+    }
+
+    function spawnTarget() {
+      const radius = Math.floor(Math.random() * 15) + 20; // Tamanho do alvo
+      const x = Math.random() * (targetCanvas.width - radius * 2) + radius;
+      const y = Math.random() * (targetCanvas.height - radius * 2) + radius;
+      const speedX = (Math.random() - 0.5) * 2;
+      const speedY = (Math.random() - 0.5) * 2;
+
+      targets.push({ x, y, radius, speedX, speedY, pulse: 0 });
+    }
+
+    function renderTargetGame() {
+      if (!isTargetRunning) return;
+
+      targetCtx.fillStyle = '#0a0a14';
+      targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+      // Desenha cada alvo
+      targets.forEach((t) => {
+        // Move o alvo levemente
+        t.x += t.speedX;
+        t.y += t.speedY;
+
+        // Rebater nas bordas
+        if (t.x - t.radius < 0 || t.x + t.radius > targetCanvas.width) t.speedX *= -1;
+        if (t.y - t.radius < 0 || t.y + t.radius > targetCanvas.height) t.speedY *= -1;
+
+        // Animação de pulso
+        t.pulse += 0.05;
+        const currentRadius = t.radius + Math.sin(t.pulse) * 3;
+
+        // Anel Externo
+        targetCtx.beginPath();
+        targetCtx.arc(t.x, t.y, currentRadius, 0, Math.PI * 2);
+        targetCtx.strokeStyle = '#ff0055';
+        targetCtx.lineWidth = 3;
+        targetCtx.shadowBlur = 10;
+        targetCtx.shadowColor = '#ff0055';
+        targetCtx.stroke();
+
+        // Anel Interno
+        targetCtx.beginPath();
+        targetCtx.arc(t.x, t.y, currentRadius * 0.5, 0, Math.PI * 2);
+        targetCtx.fillStyle = '#00f0ff';
+        targetCtx.fill();
+
+        // Centro
+        targetCtx.beginPath();
+        targetCtx.arc(t.x, t.y, currentRadius * 0.2, 0, Math.PI * 2);
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.fill();
+
+        targetCtx.shadowBlur = 0;
+      });
+
+      animationFrameId = requestAnimationFrame(renderTargetGame);
+    }
+
+    // Clique no Canvas do Tiro ao Alvo
+    targetCanvas.addEventListener('mousedown', (e) => {
+      if (!isTargetRunning) return;
+
+      const rect = targetCanvas.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) * (targetCanvas.width / rect.width);
+      const clickY = (e.clientY - rect.top) * (targetCanvas.height / rect.height);
+
+      let hit = false;
+      for (let i = targets.length - 1; i >= 0; i--) {
+        const t = targets[i];
+        const dist = Math.hypot(clickX - t.x, clickY - t.y);
+
+        if (dist <= t.radius) {
+          // Acerteu o alvo!
+          hit = true;
+          targets.splice(i, 1);
+          targetScore += 15;
+          updateGlobalScore(15);
+          document.getElementById('target-score').innerText = targetScore;
+
+          if (targetScore > highScores.target) {
+            highScores.target = targetScore;
+            document.getElementById('target-high').innerText = highScores.target;
+          }
+
+          // Spawna um novo alvo
+          spawnTarget();
+          break;
+        }
+      }
+    });
+
+    function endTargetGame() {
+      isTargetRunning = false;
+      clearInterval(targetTimerInterval);
+      cancelAnimationFrame(animationFrameId);
+
+      const overlay = document.getElementById('target-overlay');
+      document.getElementById('target-overlay-title').innerText = "TEMPO AGOTADO!";
+      document.getElementById('target-overlay-msg').innerText = `Pontuação final: ${targetScore} pontos!`;
+      overlay.classList.remove('hidden');
+    }
+
+    // Inicialização ao carregar a página
+    window.onload = function() {
+      drawSnake();
+    };
+  </script>
+</body>
+</html>
